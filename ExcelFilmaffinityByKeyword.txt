@@ -1,0 +1,52 @@
+Display.InputDialog Title: $'''Palabra clave''' Message: $'''Busca por esta palabra''' InputType: Display.InputType.SingleLine IsTopMost: False UserInput=> PalabraClave ButtonPressed=> ButtonPressed
+WebAutomation.LaunchEdge.LaunchEdge Url: $'''https://www.filmaffinity.com/es/search.php?stype=title&stext=%PalabraClave%''' WindowState: WebAutomation.BrowserWindowState.Normal ClearCache: False ClearCookies: False Timeout: 60 BrowserInstance=> Browser
+Excel.LaunchExcel.LaunchAndOpenUnderExistingProcess Path: $'''C:\\Users\\eduard.romeu\\Documents\\filmafinity\\peliculas.xlsx''' Visible: True ReadOnly: False Instance=> ExcelInstance
+WebAutomation.ExtractData.ExtractSingleValue BrowserInstance: Browser ExtractionParameters: {[$'''html > body > div:eq(3) > table > tbody > tr > td:eq(1) > div:eq(0) > div:eq(3) > div:eq(0) > ul > li:eq(1) > a > span''', $'''Own Text''', $''''''] } TimeoutInSeconds: 10 ExtractedData=> registros
+Text.ToNumber Text: registros Number=> TextAsNumber
+SET paginas TO TextAsNumber / 50
+Variables.TruncateNumber.GetIntegerPart Number: paginas Result=> paginas
+SET ProxPagina TO 0
+SET contador TO 2
+LOOP nuevaPagina FROM 0 TO paginas STEP 1
+    WebAutomation.ExtractData.ExtractList BrowserInstance: Browser Control: $'''html > body > div:eq(3) > table > tbody > tr > td:eq(1) > div:eq(0) > div:eq(3) > div:eq(1) > div''' ExtractionParameters: {[$'''div:eq(1) > div > div:eq(1) > div:eq(0) > a''', $'''Href''', $''''''] } PostProcessData: False TimeoutInSeconds: 60 ExtractedData=> listaUrls
+    LOOP FOREACH urlPeli IN listaUrls
+        WebAutomation.GoToWebPage.GoToWebPage BrowserInstance: Browser Url: urlPeli
+        WebAutomation.ExtractData.ExtractList BrowserInstance: Browser Control: $'''html > body > div:eq(3) > table > tbody > tr > td:eq(1) > div:eq(0) > div:eq(3) > div > div:eq(2) > dl:eq(0) > dt''' ExtractionParameters: {[$'''''', $'''Own Text''', $''''''] } PostProcessData: False TimeoutInSeconds: 60 ExtractedData=> VarTitulos
+        WebAutomation.ExtractData.ExtractList BrowserInstance: Browser Control: $'''html > body > div:eq(3) > table > tbody > tr > td:eq(1) > div:eq(0) > div:eq(3) > div > div:eq(2) > dl:eq(0) > dd''' ExtractionParameters: {[$'''''', $'''Own Text''', $''''''] } PostProcessData: False TimeoutInSeconds: 60 ExtractedData=> VarDatos
+        WebAutomation.ExtractData.ExtractSingleValue BrowserInstance: Browser ExtractionParameters: {[$'''html > body > div:eq(3) > table > tbody > tr > td:eq(1) > div:eq(0) > div:eq(3) > div > div:eq(2) > dl:eq(0) > dt:eq(1)''', $'''Own Text''', $''''''] } TimeoutInSeconds: 60 ExtractedData=> AKA
+        LOOP LoopIndex FROM 0 TO VarTitulos.RowsCount - 1 STEP 1
+            SWITCH VarTitulos[LoopIndex]
+                CASE = $'''Título original'''
+                    Text.Trim Text: VarDatos[LoopIndex] TrimOption: Text.TrimOption.Both TrimmedText=> Titulo
+                    IF AKA = $'''AKA''' THEN
+                        Text.GetSubtext.GetSubtextFromStartTo Text: Titulo NumberOfChars: Titulo.Length - 3 Subtext=> Titulo
+                    END
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: Titulo Column: $'''A''' Row: contador
+                CASE = $'''Año'''
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: VarDatos[LoopIndex] Column: $'''B''' Row: contador
+                CASE = $'''Dirección'''
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: VarDatos[LoopIndex] Column: $'''C''' Row: contador
+                CASE = $'''País'''
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: VarDatos[LoopIndex] Column: $'''D''' Row: contador
+                CASE = $'''Sinopsis'''
+                    Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: VarDatos[LoopIndex] Column: $'''E''' Row: contador
+            END
+        END
+        Variables.IncreaseVariable Value: contador IncrementValue: 1 IncreasedValue=> contador
+    END
+    Variables.IncreaseVariable Value: ProxPagina IncrementValue: 50 IncreasedValue=> ProxPagina
+    WebAutomation.GoToWebPage.GoToWebPage BrowserInstance: Browser Url: $'''https://www.filmaffinity.com/es/search.php?stype=title&stext=%PalabraClave%&from=%paginas%&orderby=relevance'''
+END
+Excel.CloseExcel.CloseAndSaveAs Instance: ExcelInstance DocumentFormat: Excel.ExcelFormat.OpenXmlWorkbook DocumentPath: $'''C:\\Users\\eduard.romeu\\Documents\\filmafinity\\peliculas_%PalabraClave%.xlsx'''
+WebAutomation.CloseWebBrowser BrowserInstance: Browser
+
+# [ControlRepository][PowerAutomateDesktop]
+
+{
+  "ControlRepositorySymbols": [],
+  "ImageRepositorySymbol": {
+    "Name": "imgrepo",
+    "ImportMetadata": {},
+    "Repository": "{\r\n  \"Folders\": [],\r\n  \"Images\": [],\r\n  \"Version\": 1\r\n}"
+  }
+}

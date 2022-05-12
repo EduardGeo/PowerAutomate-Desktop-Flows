@@ -1,0 +1,32 @@
+File.ReadTextFromFile.ReadText File: $'''C:\\Users\\eduard.romeu\\Documents\\ConfToExcel\\ficheroejemplo.conf''' Encoding: File.TextFileEncoding.UTF8 Content=> FileContents
+Excel.LaunchExcel.LaunchUnderExistingProcess Visible: True Instance=> ExcelInstance
+Text.SplitText.Split Text: FileContents StandardDelimiter: Text.StandardDelimiter.NewLine DelimiterTimes: 1 Result=> ListaLineas
+SET ContadorLinea TO 1
+LOOP FOREACH Linea IN ListaLineas
+    Text.ParseText.ParseForFirstOccurrence Text: Linea TextToFind: $'''[''' StartingPosition: 0 IgnoreCase: False OccurrencePosition=> NuevaLinea
+    IF NuevaLinea = 0 THEN
+        SET ContadorColumna TO 1
+        Variables.IncreaseVariable Value: ContadorLinea IncrementValue: 1 IncreasedValue=> ContadorLinea
+    END
+    Text.SplitText.SplitWithDelimiter Text: Linea CustomDelimiter: $'''=''' IsRegEx: False Result=> LineaPart
+    Text.ParseText.ParseForFirstOccurrence Text: Linea TextToFind: $''';''' StartingPosition: 0 IgnoreCase: False OccurrencePosition=> PuntoComa
+    IF PuntoComa <> 0 THEN
+        IF LineaPart.Count > 1 THEN
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: LineaPart[0] Column: ContadorColumna Row: 1
+            Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: LineaPart[1] Column: ContadorColumna Row: ContadorLinea
+            Variables.IncreaseVariable Value: ContadorColumna IncrementValue: 1 IncreasedValue=> ContadorColumna
+        END
+    END
+END
+Excel.CloseExcel.CloseAndSaveAs Instance: ExcelInstance DocumentFormat: Excel.ExcelFormat.OpenXmlWorkbook DocumentPath: $'''C:\\Users\\eduard.romeu\\Documents\\ConfToExcel\\ficheroejemplo.xlsx'''
+
+# [ControlRepository][PowerAutomateDesktop]
+
+{
+  "ControlRepositorySymbols": [],
+  "ImageRepositorySymbol": {
+    "Name": "imgrepo",
+    "ImportMetadata": {},
+    "Repository": "{\r\n  \"Folders\": [],\r\n  \"Images\": [],\r\n  \"Version\": 1\r\n}"
+  }
+}
